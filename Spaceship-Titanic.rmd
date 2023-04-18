@@ -1,0 +1,97 @@
+---
+title: 'Spaceship Titanic'
+author: 'Kelsey McCornack'
+date: '2023-04-17'
+output: git_document
+---
+
+```{r setup, include = FALSE}
+# Set working directory
+knitr::opts_knit$set(root.dir = 'C:\\Users\\kmcco\\OneDrive\\Desktop\\DataScienceSelfStudy\\Kaggle Competitions\\Spaceship-Titanic')
+```
+
+```{r, warning = FALSE, message = FALSE}
+# Load libraries
+library(dplyr)
+library(tidyr)
+library(DescTools) # not using this?
+library(corrplot)
+library(ggplot2)
+```
+
+```{r}
+# Load data sets
+train_raw <- read.csv('train.csv')
+test_raw <- read.csv('test.csv')
+```
+
+```{r}
+# Merging training and testing sets for cleaning purposes
+train <- train_raw
+test <- test_raw
+
+test$Transported <- NA
+train$Set <- 0
+test$Set <- 1
+
+master <- rbind(train, test)
+head(master)
+```
+
+```{r, warning = FALSE}
+# Remove and reconfigure columns
+cols_to_remove <- c('PassengerId', 'Name', 'Survived')
+master <- master[, !(names(master) %in% cols_to_remove)]
+master <- separate(master, Cabin, into = c('CabinDeck', 'CabinNum', 'CabinSide'), sep = '/')
+
+head(master)
+```
+
+```{r}
+# Examine data
+cat('Data Types: \n\n')
+sapply(master, class)
+
+cat('\nNA Counts:\n\n')
+colSums(is.na(master))
+
+cat('\nProportion NAs by Column:\n\n')
+round(colSums(is.na(master))/nrow(master), 4)
+
+cat('\nTotal Proprion NA values:\n\n')
+round(sum(rowSums(is.na(master))>0)/nrow(master), 4)
+```
+## Clean Data
+
+```{r}
+colnames(master)
+# Clean data
+head(master)
+         
+master <- master %>%
+  mutate_at(vars(matches('CryoSleep|VIP')), ~ifelse(. == 'True', 1, 0)) %>%
+  mutate_at(vars(matches('Cryosleep|VIP')), factor) %>%
+  mutate(across(where(is.character), ~ replace_na(., Mode(., na.rm = TRUE)))) %>%
+  mutate(across(where(is.numeric), ~ replace_na(., median(., na.rm = TRUE)))) %>%
+  mutate_if(is.character, as.factor)
+
+sapply(master, class)
+colSums(is.na(master))
+head(master)
+```
+```{r}
+# Split data back into testing and training sets
+train <- master %>%
+  filter(Set == 0) %>%
+  select(-Set)
+
+test <- master %>%
+  filter(Set == 1) %>%
+  select(-Set)
+
+train$Transported <- train_raw$Transported
+
+train <- train  %>%
+  mutate_at('Transported', ~ifelse(. == 'True', 1, 0)) %>%
+  mutate_at('Transported', factor)
+```

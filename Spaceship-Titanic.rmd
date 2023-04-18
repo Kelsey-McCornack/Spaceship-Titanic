@@ -2,7 +2,7 @@
 title: 'Spaceship Titanic'
 author: 'Kelsey McCornack'
 date: '2023-04-17'
-output: git_document
+output: github_document
 ---
 
 ```{r setup, include = FALSE}
